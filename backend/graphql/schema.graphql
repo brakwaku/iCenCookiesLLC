@@ -1,0 +1,181 @@
+type User {
+  _id: ID!
+  name: String!
+  email: String!
+  isAdmin: Boolean
+  address: Address
+  orders: [Order]
+  preferences: Preferences
+  createdAt: String!
+}
+
+type Address {
+  street: String!
+  city: String!
+  postalCode: String!
+  country: String!
+}
+
+type Preferences {
+  _id: ID!
+  monthlyDelivery: Boolean
+  doNotAdd: [String]
+}
+
+type Product {
+  _id: ID!
+  name: String!
+  description: String!
+  imageUrl: String!
+  type: String!
+  rating: Float!
+  reviews: [Review]
+  numReviews: Int!
+  countInStock: Int!
+  price: Float!
+}
+
+type Review {
+  _id: ID!
+  name: String!
+  rating: Float!
+  comment: String!
+  user: User!
+}
+
+type Order {
+  _id: ID!
+  user: User!
+  type: String!
+  orderItems: [OrderItem]
+  shippingAddress: Address!
+  paymentMethod: String!
+  paymentResult: PaymentResult
+  taxPrice: Float!
+  shippingPrice: Float!
+  totalPrice: Float!
+  isPaid: Boolean!
+  paidAt: String
+  isDelivered: Boolean!
+  deliveredAt: String
+}
+
+type OrderItem {
+  name: String!
+  qty: Int!
+  image: String!
+  price: Float!
+  productId: ID!
+}
+
+type PaymentResult {
+  id: String!
+  status: String!
+  update_time: String!
+  email_address: String!
+  phone_number: String!
+}
+
+type Query {
+  users: [User]
+  user(id: ID!): User
+
+  products: [Product]
+  product(id: ID!): Product
+
+  orders: [Order]
+  order(id: ID!): Order
+
+  reviews: [Review]
+  review(id: ID!): Review
+}
+
+type Mutation {
+  createProduct(input: ProductInput!): Product
+  updateProduct(id: ID!, input: ProductInput!): Product
+  deleteProduct(id: ID!): ID
+
+  createOrder(input: OrderInput!): Order
+  updateOrder(id: ID!, input: OrderInput!): Order
+  deleteOrder(id: ID!): ID
+
+  # User mutations
+  registerUser(userInput: UserInput!): AuthUserResponse!
+  loginUser(email: String!, password: String!): AuthUserResponse!
+  requestPasswordReset(email: String!): MessageResponse!
+  resetPassword(email: String!, newPassword: String!, resetToken: String!): MessageResponse!
+  updateUser(userId: ID!, updatedUser: UserInput!): User!
+  deleteUser(id: ID!): ID
+
+  createReview(input: ReviewInput!): Review
+  updateReview(id: ID!, input: ReviewInput!): Review
+  deleteReview(id: ID!): ID
+}
+
+type AuthUserResponse {
+  token: String!
+  user: User!
+}
+
+type MessageResponse {
+  message: String!
+}
+
+input AddressInput {
+  street: String!
+  city: String!
+  postalCode: String
+  country: String
+}
+
+input ProductInput {
+  name: String!
+  description: String!
+  imageUrl: String!
+  type: String!
+  rating: Float!
+  numReviews: Int!
+  countInStock: Int!
+  price: Float!
+}
+
+input OrderInput {
+  userId: ID!
+  type: String!
+  orderItems: [OrderItemInput]!
+  shippingAddress: AddressInput!
+  paymentMethod: String!
+  taxPrice: Float!
+  shippingPrice: Float!
+  totalPrice: Float!
+}
+
+input OrderItemInput {
+  name: String!
+  qty: Int!
+  image: String!
+  price: Float!
+  productId: ID!
+}
+
+input UserInput {
+  name: String!
+  email: String!
+  isAdmin: Boolean
+  address: AddressInput
+  preferences: PreferencesInput
+  createdAt: String
+}
+
+input PreferencesInput {
+  monthlyDelivery: Boolean
+  doNotAdd: [String]
+}
+
+input ReviewInput {
+  name: String!
+  rating: Float!
+  comment: String!
+  userId: ID!
+}
+
