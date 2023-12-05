@@ -110,8 +110,8 @@ const apolloServer = new ApolloServer({ typeDefs, resolvers });
 await apolloServer.start();
 app.use(
   "/graphql",
-  cors(),
-  express.json(),
+  // cors(),
+  // express.json(),
   apolloExpress(apolloServer, { context })
 );
 
