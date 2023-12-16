@@ -3,8 +3,8 @@ import { gql } from '@apollo/client';
 
 export const GET_PRODUCTS = gql`
   query GetProducts {
-    products {
-      id
+    getAllProducts {
+      _id
       name
       description
       price
@@ -15,7 +15,7 @@ export const GET_PRODUCTS = gql`
 export const GET_PRODUCT = gql`
   query GetProduct($id: ID!) {
     product(id: $id) {
-      id
+      _id
       name
       description
       # Add other fields as needed
@@ -28,7 +28,7 @@ export const SIGN_IN = gql`
   mutation SignIn($email: String!, $password: String!) {
     signIn(email: $email, password: $password) {
       user {
-        id
+        _id
         name
       }
     }

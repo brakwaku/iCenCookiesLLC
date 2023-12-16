@@ -1,19 +1,18 @@
-import jwt from 'jsonwebtoken';
-import asyncHandler from './async.js';
-import ErrorResponse from '../utils/errorResponse.js';
-import User from '../models/User.js';
+import jwt from "jsonwebtoken";
+import asyncHandler from "./async.js";
+// import ErrorResponse from "../utils/errorResponse.js";
+import User from "../models/User.js";
 
 // Protect routes
-export const protect = asyncHandler(async (req, res, next) => {
+export const protect = asyncHandler(async (req) => {
   let token;
-  console.log('&&&&&&&&&&&&&&&&&&&&&&&&&', req.headers.authorization)
 
   if (
     req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
+    req.headers.authorization.startsWith("Bearer")
   ) {
     // Set token from Bearer token in header
-    token = req.headers.authorization.split(' ')[1];
+    token = req.headers.authorization.split(" ")[1];
   } else if (req.cookies.token) {
     // Set token from cookie
     token = req.cookies.token;
@@ -21,7 +20,7 @@ export const protect = asyncHandler(async (req, res, next) => {
 
   // Make sure token exists
   if (!token) {
-    return next(new ErrorResponse('Not authorized to access this route', 401));
+    throw new Error("Not authorized to access this route");
   }
 
   try {
@@ -29,24 +28,16 @@ export const protect = asyncHandler(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = await User.findById(decoded.id);
-
-    next();
   } catch (err) {
-    return next(new ErrorResponse('Not authorized to access this route', 401));
+    throw new Error("Not authorized to access this route");
   }
 });
 
 // Grant access to specific roles
-export const authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return next(
-        new ErrorResponse(
-          `User role ${req.user.role} is not authorized to access this route`,
-          403
-        )
-      );
-    }
-    next();
-  };
+export const authorize = (role, user) => {
+  if (role !== user.role) {
+    throw new Error(
+      `User role ${user.role} is not authorized to access this route`
+    );
+  }
 };

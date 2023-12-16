@@ -1,5 +1,6 @@
 import DataLoader from 'dataloader';
 import Review from '../models/Review.js';
+import Product from '../models/Product.js';
 import User from '../models/User.js';
 
 const batchLoadProducts = async (productIds) => {

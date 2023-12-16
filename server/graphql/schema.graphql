@@ -28,9 +28,9 @@ type Product {
   user: ID!
   name: String!
   imageUrl: String!
-  # cloudinaryId: String!
+  cloudinaryId: String # Make required later
   type: String!
-  # category: String!
+  category: String # Make required later
   description: String!
   reviews: [Review]
   rating: Float
@@ -99,13 +99,13 @@ type Query {
 type Mutation {
   # Product mutations
   createProduct(input: ProductInput!): Product
-  updateProduct(id: ID!, input: ProductInput!): Product
-  deleteProduct(id: ID!): ID
+  updateProduct(id: ID!, input: UpdateProductInput!): Product
+  deleteProduct(deleteProductId: ID!): MessageResponse
 
   # Order mutations
   createOrder(input: OrderInput!): Order
   updateOrder(id: ID!, input: OrderInput!): Order
-  deleteOrder(id: ID!): ID
+  deleteOrder(id: ID!): MessageResponse
 
   # User mutations
   registerUser(userInput: UserInput!): AuthUserResponse!
@@ -114,12 +114,12 @@ type Mutation {
   requestPasswordReset(email: String!): MessageResponse!
   resetPassword(email: String!, newPassword: String!, resetToken: String!): MessageResponse!
   updateUser(userId: ID!, updatedUser: UpdatedUserInput!): User!
-  deleteUser(id: ID!): ID
+  deleteUser(deleteUserId: ID!): MessageResponse
 
   # Review mutations
   createReview(input: ReviewInput!): Review
   updateReview(id: ID!, input: ReviewInput!): Review
-  deleteReview(id: ID!): ID
+  deleteReview(id: ID!): MessageResponse
 }
 
 type AuthUserResponse {
@@ -153,6 +153,19 @@ input ProductInput {
   numReviews: Int!
   countInStock: Int!
   price: Float!
+}
+
+input UpdateProductInput {
+  name: String
+  description: String
+  imageUrl: String
+  cloudinaryId: String
+  type: String
+  category: String
+  rating: Float
+  numReviews: Int
+  countInStock: Int
+  price: Float
 }
 
 input OrderInput {

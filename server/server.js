@@ -3,6 +3,7 @@ import { expressMiddleware as apolloMiddleware } from "@apollo/server/express4";
 import cors from "cors";
 import express from "express";
 import { expressjwt } from "express-jwt";
+import jwt from "jsonwebtoken";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -49,18 +50,27 @@ app.use(fileupload());
 app.use(mongoSanitize());
 
 // Set security headers
-app.use(helmet({
-  crossOriginEmbedderPolicy: false,
-  // Allows the use of the apollo sandbox
-  contentSecurityPolicy: {
-    directives: {
-      imgSrc: [`'self'`, 'data:', 'apollo-server-landing-page.cdn.apollographql.com'],
-      scriptSrc: [`'self'`, `https: 'unsafe-inline'`],
-      manifestSrc: [`'self'`, 'apollo-server-landing-page.cdn.apollographql.com'],
-      frameSrc: [`'self'`, 'sandbox.embed.apollographql.com'],
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    // Allows the use of the apollo sandbox
+    contentSecurityPolicy: {
+      directives: {
+        imgSrc: [
+          `'self'`,
+          "data:",
+          "apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        scriptSrc: [`'self'`, `https: 'unsafe-inline'`],
+        manifestSrc: [
+          `'self'`,
+          "apollo-server-landing-page.cdn.apollographql.com",
+        ],
+        frameSrc: [`'self'`, "sandbox.embed.apollographql.com"],
+      },
     },
-  },
-}));
+  })
+);
 
 // Prevent XSS attacks
 app.use(xss());
@@ -78,11 +88,15 @@ app.use(hpp());
 app.use(
   cors(), // Enable CORS
   express.json(), // Body parser
-  // expressjwt({
-  //   algorithms: ["HS256"],
-  //   credentialsRequired: false,
-  //   secret: process.env.JWT_SECRET,
-  // })
+  expressjwt({ // JWT middleware to authenticate all routes
+    algorithms: ["HS256"],
+    credentialsRequired: false,
+    secret: process.env.JWT_SECRET,
+  }).unless({ 
+    // Unless the route is /graphql or /api/v1/auth
+    path: [
+      "/graphql",
+    ],})
 );
 
 // Import GraphQL schema
@@ -94,12 +108,14 @@ const typeDefs = await readFile(schemaPath, "utf-8");
 // Set static folder
 app.use(express.static(path.join(__dirname, "public")));
 const context = async ({ req, res }) => {
-  console.log("*******************REQ: ", req.auth, req.user, req.cookies);
   const { productLoader, reviewLoader } = createproductLoader();
 
-  if (req.auth) {
+  if (req.cookies.token) {
     try {
-      const user = await User.findById(req.auth.id);
+      let token = req.cookies.token;
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
       return {
         loaders: {
           productLoader,
@@ -108,7 +124,6 @@ const context = async ({ req, res }) => {
         user,
         res,
         req,
-        next: req.next
       };
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -116,7 +131,7 @@ const context = async ({ req, res }) => {
     }
   }
 
-  return { loaders: { productLoader, reviewLoader }, res, req, next: req.next };
+  return { loaders: { productLoader, reviewLoader }, res, req };
 };
 
 // Set up Apollo Server with GraphQL schema and resolvers
@@ -141,14 +156,16 @@ app.use(errorHandler);
 // Set up server port
 const PORT = process.env.PORT || 4000;
 
-if (process.env.NODE_ENV === 'production') { // For deployment purposes
-  app.use(express.static(path.join(__dirname, '/client/build')));
+if (process.env.NODE_ENV === "production") { // For deployment purposes
+  app.use(express.static(path.join(__dirname, "/client/build")));
 
-  app.get('*', (req, res) => res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html')));
+  app.get("*", (req, res) =>
+    res.sendFile(path.resolve(__dirname, "client", "build", "index.html"))
+  );
 } else {
-  app.get('/', (req, res) => {
-      res.send('API is running...');
-  })
+  app.get("/", (req, res) => {
+    res.send("API is running...");
+  });
 }
 
 // Start the server
