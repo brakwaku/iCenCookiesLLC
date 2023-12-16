@@ -1,22 +1,22 @@
-const express = require('express');
-const {
+import express from 'express';
+import {
   getUsers,
   getUser,
   createUser,
   updateUser,
   deleteUser,
-} = require('../controllers/users');
+} from '../controllers/users.js';
 
-const User = require('../models/User');
+import User from'../models/User.js';
 
 const router = express.Router({ mergeParams: true });
 
-const advancedResults = require('../middleware/advancedResults');
-const { protect, authorize } = require('../middleware/auth');
+import advancedResults from '../middleware/advancedResults.js';
+import { protect, authorize } from '../middleware/auth.js';
 
 // Anything below this line will use protect and authorize middleware
-router.use(protect);
-router.use(authorize('admin'));
+// router.use(protect);
+// router.use(authorize('admin'));
 
 router
   .route('/')
@@ -29,4 +29,4 @@ router
   .put(updateUser)
   .delete(deleteUser);
 
-module.exports = router;
+export default router;

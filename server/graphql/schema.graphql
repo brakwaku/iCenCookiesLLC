@@ -2,7 +2,8 @@ type User {
   _id: ID!
   name: String!
   email: String!
-  isAdmin: Boolean
+  role: String!
+  password: String!
   address: Address
   orders: [Order]
   preferences: Preferences
@@ -24,15 +25,20 @@ type Preferences {
 
 type Product {
   _id: ID!
+  user: ID!
   name: String!
-  description: String!
   imageUrl: String!
+  # cloudinaryId: String!
   type: String!
-  rating: Float!
+  # category: String!
+  description: String!
   reviews: [Review]
-  numReviews: Int!
-  countInStock: Int!
+  rating: Float
+  numReviews: Int
   price: Float!
+  countInStock: Int!
+  createdAt: String!
+  updatedAt: String!
 }
 
 type Review {
@@ -77,24 +83,26 @@ type PaymentResult {
 }
 
 type Query {
-  users: [User]
-  user(id: ID!): User
+  getAllUsers: [User]
+  getUserById(id: ID!): User
 
-  products: [Product]
-  product(id: ID!): Product
+  getAllProducts: [Product]
+  getProductById(id: ID!): Product
 
-  orders: [Order]
-  order(id: ID!): Order
+  getAllUserOrders: [Order]
+  getOrderById(id: ID!): Order
 
   reviews: [Review]
   review(id: ID!): Review
 }
 
 type Mutation {
+  # Product mutations
   createProduct(input: ProductInput!): Product
   updateProduct(id: ID!, input: ProductInput!): Product
   deleteProduct(id: ID!): ID
 
+  # Order mutations
   createOrder(input: OrderInput!): Order
   updateOrder(id: ID!, input: OrderInput!): Order
   deleteOrder(id: ID!): ID
@@ -102,11 +110,13 @@ type Mutation {
   # User mutations
   registerUser(userInput: UserInput!): AuthUserResponse!
   loginUser(email: String!, password: String!): AuthUserResponse!
+  logoutUser: LogoutUserResponse!
   requestPasswordReset(email: String!): MessageResponse!
   resetPassword(email: String!, newPassword: String!, resetToken: String!): MessageResponse!
-  updateUser(userId: ID!, updatedUser: UserInput!): User!
+  updateUser(userId: ID!, updatedUser: UpdatedUserInput!): User!
   deleteUser(id: ID!): ID
 
+  # Review mutations
   createReview(input: ReviewInput!): Review
   updateReview(id: ID!, input: ReviewInput!): Review
   deleteReview(id: ID!): ID
@@ -115,6 +125,12 @@ type Mutation {
 type AuthUserResponse {
   token: String!
   user: User!
+  success: Boolean!
+}
+
+type LogoutUserResponse {
+  success: Boolean!
+  message: String!
 }
 
 type MessageResponse {
@@ -132,7 +148,7 @@ input ProductInput {
   name: String!
   description: String!
   imageUrl: String!
-  type: String!
+  type: String! # The type of cookie (Customizable product, regular product, etc.)
   rating: Float!
   numReviews: Int!
   countInStock: Int!
@@ -161,8 +177,21 @@ input OrderItemInput {
 input UserInput {
   name: String!
   email: String!
-  isAdmin: Boolean
+  role: String!
+  password: String!
   address: AddressInput
+  orders: [ID]
+  preferences: PreferencesInput
+  createdAt: String
+}
+
+input UpdatedUserInput {
+  name: String
+  email: String
+  role: String
+  password: String
+  address: AddressInput
+  orders: [ID]
   preferences: PreferencesInput
   createdAt: String
 }

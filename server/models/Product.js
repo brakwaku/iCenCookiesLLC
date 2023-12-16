@@ -23,22 +23,24 @@ const productSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    image: {
+    imageUrl: {
         type: String,
         required: true
     },
-    cloudinaryId: {
+    // cloudinaryId: {
+    //     type: String,
+    //     required: true
+    // },
+    type: {
         type: String,
+        enum: ['regular', 'custom'],
+        default: 'regular',
         required: true
     },
-    brand: {
-        type: String,
-        required: true
-    },
-    category: {
-        type: String,
-        required: true
-    },
+    // category: {
+    //     type: String,
+    //     required: true
+    // },
     description: {
         type: String,
         required: true
@@ -46,12 +48,12 @@ const productSchema = mongoose.Schema({
     reviews: [reviewSchema],
     rating: {
         type: Number,
-        required: true,
+        // required: true,
         default: 0
     },
     numReviews: {
         type: Number,
-        required: true,
+        // required: true,
         default: 0
     },
     price: {

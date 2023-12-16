@@ -4,15 +4,15 @@
   "version": "1.0.0",
   "description": "iCen Cookies LLC web platform for ordering cookies and managing orders",
   "main": "server.js",
+  "type": "module",
   "scripts": {
-    "start": "node backend/server",
-    "server": "nodemon --ext js,graphql --ignore data/ backend/server",
-    "client": "npm start --prefix frontend",
+    "start": "node server/server",
+    "server": "nodemon --ext js,graphql --ignore data/ server/server",
+    "client": "npm start --prefix client",
     "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "author": "Kwaku Appau-Nkansah",
   "license": "MIT",
-  "type": "module",
   "dependencies": {
     "@apollo/server": "^4.9.5",
     "bcryptjs": "^2.4.3",
@@ -32,7 +32,11 @@
     "mongoose": "^8.0.2",
     "morgan": "^1.10.0",
     "nanoid": "^5.0.4",
-    "nodemon": "^3.0.2",
+    "nodemailer": "^6.9.7",
     "xss-clean": "^0.1.4"
+  },
+  "devDependencies": {
+    "concurrently": "^6.2.1",
+    "nodemon": "^3.0.2"
   }
 }
