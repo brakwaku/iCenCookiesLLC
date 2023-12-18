@@ -3,55 +3,56 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const UserSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "Please add a name."],
-  },
-  email: {
-    type: String,
-    required: [true, "Please add an email."],
-    unique: true,
-    match: [
-      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-      "Please add a valid email.",
-    ],
-  },
-  role: {
-    type: String,
-    enum: ["admin", "customer"],
-    default: "customer",
-    required: true,
-  },
-  address: {
-    street: String,
-    city: String,
-    postalCode: String,
-    country: String,
-  },
-  orders: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
+const UserSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Please add a name."],
     },
-  ],
-  preferences: {
-    monthlyDelivery: Boolean,
-    doNotAdd: [String],
+    email: {
+      type: String,
+      required: [true, "Please add an email."],
+      unique: true,
+      match: [
+        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+        "Please add a valid email.",
+      ],
+    },
+    role: {
+      type: String,
+      enum: ["admin", "customer"],
+      default: "customer",
+      required: true,
+    },
+    address: {
+      street: String,
+      city: String,
+      postalCode: String,
+      country: String,
+    },
+    orders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
+      },
+    ],
+    preferences: {
+      monthlyDelivery: Boolean,
+      doNotAdd: [String],
+    },
+    password: {
+      type: String,
+      required: [true, "Please add a password."],
+      minlength: 6,
+      select: false,
+    },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
   },
-  password: {
-    type: String,
-    required: [true, "Please add a password."],
-    minlength: 6,
-    select: false,
-  },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  {
+    timestamps: true,
+  }
+);
 
 // Encrypt password using bcryptjs
 UserSchema.pre("save", async function (next) {

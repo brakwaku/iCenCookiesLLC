@@ -16,10 +16,10 @@ const batchLoadProducts = async (productIds) => {
 // Batch load reviews based on product IDs
 const batchLoadReviews = async (productIds) => {
   try {
-    const reviews = await Review.find({ productId: { $in: productIds } });
+    const reviews = await Review.find({ product: { $in: productIds } });
 
     // Extract unique user IDs from reviews
-    const userIds = [...new Set(reviews.map((review) => review.userId))];
+    const userIds = [...new Set(reviews.map((review) => review.user))];
 
     // Batch load users based on user IDs
     const users = await User.find({ _id: { $in: userIds } });
@@ -33,12 +33,12 @@ const batchLoadReviews = async (productIds) => {
     // Group reviews by productId
     const reviewMap = {};
     reviews.forEach((review) => {
-      if (!reviewMap[review.productId]) {
-        reviewMap[review.productId] = [];
+      if (!reviewMap[review.product]) {
+        reviewMap[review.product] = [];
       }
-      reviewMap[review.productId].push({
+      reviewMap[review.product].push({
         ...review.toObject(), // Convert Mongoose document to plain object
-        user: userMap[review.userId],
+        user: userMap[review.user],
       });
     });
 

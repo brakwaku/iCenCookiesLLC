@@ -43,15 +43,18 @@ type Product {
 
 type Review {
   _id: ID!
-  name: String!
-  rating: Float!
+  title: String!
   comment: String!
+  rating: Float!
   user: User!
+  product: ID!
+  createdAt: String!
+  updatedAt: String!
 }
 
 type Order {
   _id: ID!
-  user: User!
+  user: ID!
   type: String!
   orderItems: [OrderItem]
   shippingAddress: Address!
@@ -83,15 +86,20 @@ type PaymentResult {
 }
 
 type Query {
+  # User queries
   getAllUsers: [User]
   getUserById(id: ID!): User
 
+  # Product queries
   getAllProducts: [Product]
   getProductById(id: ID!): Product
+  getProductReviews(productId: ID!): [Review]
 
+  # Order queries
   getAllUserOrders: [Order]
   getOrderById(id: ID!): Order
 
+  # Review queries
   reviews: [Review]
   review(id: ID!): Review
 }
@@ -111,15 +119,16 @@ type Mutation {
   registerUser(userInput: UserInput!): AuthUserResponse!
   loginUser(email: String!, password: String!): AuthUserResponse!
   logoutUser: LogoutUserResponse!
-  requestPasswordReset(email: String!): MessageResponse!
-  resetPassword(email: String!, newPassword: String!, resetToken: String!): MessageResponse!
+  forgotPasswordRequest(email: String!): MessageResponse!
+  forgotPassword(newPassword: String!, resetToken: String!): MessageResponse!
+  resetPassword(currentPassword: String!, newPassword: String!): MessageResponse!
   updateUser(userId: ID!, updatedUser: UpdatedUserInput!): User!
   deleteUser(deleteUserId: ID!): MessageResponse
 
   # Review mutations
   createReview(input: ReviewInput!): Review
-  updateReview(id: ID!, input: ReviewInput!): Review
-  deleteReview(id: ID!): MessageResponse
+  updateReview(id: ID!, input: UpdateReviewInput!): Review
+  deleteReview(deleteReviewId: ID!): MessageResponse
 }
 
 type AuthUserResponse {
@@ -169,7 +178,7 @@ input UpdateProductInput {
 }
 
 input OrderInput {
-  userId: ID!
+  user: ID!
   type: String!
   orderItems: [OrderItemInput]!
   shippingAddress: AddressInput!
@@ -184,7 +193,7 @@ input OrderItemInput {
   qty: Int!
   image: String!
   price: Float!
-  productId: ID!
+  product: ID!
 }
 
 input UserInput {
@@ -215,9 +224,16 @@ input PreferencesInput {
 }
 
 input ReviewInput {
-  name: String!
-  rating: Float!
+  title: String!
   comment: String!
-  userId: ID!
+  rating: Float!
+  product: ID!
+}
+
+input UpdateReviewInput {
+  title: String
+  comment: String
+  rating: Float
+  user: ID
 }
 
