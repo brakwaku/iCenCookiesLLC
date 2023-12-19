@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import Product from "../models/Product.js";
 import Review from "../models/Review.js";
 import Order from "../models/Order.js";
+import Preferences from "../models/Preferences.js";
 import sendEmail from "../utils/sendEmail.js";
 import { sendTokenResponse } from "../utils/auth.js";
 import { protect, authorize } from "../middleware/auth.js";
@@ -377,10 +378,11 @@ const resolvers = {
       const reviewInput = { ...input, user: userId };
       try {
         // Save the new review to the database
-        const review = (await Review.create(reviewInput)).populate("user");
+        const review = await Review.create(reviewInput);
+        await review.populate({ path: "user", model: "User" });
         let product = await Product.findById(input.product);
         product.reviews.push(review._id);
-        product.numReviews = product.reviews + 1;
+        product.numReviews = product.reviews.length;
         await product.save();
 
         return review;
@@ -414,6 +416,7 @@ const resolvers = {
         const review = await Review.findByIdAndUpdate(id, input, {
           new: true,
         });
+        await review.populate({ path: "user", model: "User" });
 
         return review;
       } catch (error) {
@@ -428,15 +431,15 @@ const resolvers = {
       await authorize("admin", user);
 
       const review = await Review.findById(deleteReviewId);
-      // const productId = review.product;
-      // // Update the product
-      // await Product.updateOne(
-      //   { _id: productId },
-      //   {
-      //     $pull: { reviews: reviewId },
-      //     $inc: { numReviews: -1 },
-      //   }
-      // );
+      const productId = review.product;
+      // Update the product
+      await Product.updateOne(
+        { _id: productId },
+        {
+          $pull: { reviews: review.id },
+          $inc: { numReviews: -1 },
+        }
+      );
 
       // // Check if the user is the owner of the review and reject if not
       // if (user.id !== review.user.toString()) {
@@ -444,10 +447,134 @@ const resolvers = {
       // }
 
       try {
-        await review.remove();
+        await review.deleteOne();
         return { message: "Review deleted successfully" };
       } catch (error) {
         throw new Error(`Delete review failed: ${error.message}`);
+      }
+    },
+
+    // Create order mutation
+    createOrder: async (_, { input }, { req, user }) => {
+      // Check if the user is logged in and reject if not
+      await protect(req);
+      const userId = user?.id;
+
+      const orderInput = { ...input, user: userId };
+      try {
+        // Save the new order to the database
+        const order = await Order.create(orderInput);
+
+        return order;
+      } catch (error) {
+        throw new Error(`Order creation failed: ${error.message}`);
+      }
+    },
+
+    // Update order mutation
+    updateOrder: async (_, { id, input }, { req, user }) => {
+      // Check if the user is logged in and reject if not
+      await protect(req);
+      const oldOrder = await Order.findById(id);
+
+      // Check if the user is the owner of the order or an admin and reject if not
+      if (user.id !== oldOrder.user.toString() || user.role !== "admin") {
+        throw new Error("You are not authorized to update this order");
+      }
+      try {
+        // Save the updated order to the database
+        const order = await Order.findByIdAndUpdate(id, input, {
+          new: true,
+        });
+
+        return order;
+      } catch (error) {
+        throw new Error(`Order update failed: ${error.message}`);
+      }
+    },
+
+    // Delete order mutation
+    deleteOrder: async (_, { deleteOrderId }, { req, user }) => {
+      // Check if there is a logged in user and reject if not
+      await protect(req);
+      const oldOrder = await Order.findById(deleteOrderId);
+
+      // Check if the user is the owner of the order or an admin and reject if not
+      if (user.id !== oldOrder.user.toString() || user.role !== "admin") {
+        throw new Error("You are not authorized to delete this order");
+      }
+      try {
+        const orderToDelete = await Order.findByIdAndDelete(deleteOrderId);
+        if (!orderToDelete) {
+          throw new Error("Order not found");
+        }
+        return { message: "Order deleted successfully" };
+      } catch (error) {
+        throw new Error(`Delete order failed: ${error.message}`);
+      }
+    },
+
+    // Create preferences mutation
+    createPreferences: async (_, { input }, { req, user }) => {
+      // Check if the user is logged in and reject if not
+      await protect(req);
+      const userId = user?.id;
+
+      const preferencesInput = { ...input, user: userId };
+      try {
+        // Save the new preferences to the database
+        const preferences = await Preferences.create(preferencesInput);
+        await preferences.populate({ path: "order", model: "Order" });
+
+        return preferences;
+      } catch (error) {
+        throw new Error(`Preferences creation failed: ${error.message}`);
+      }
+    },
+
+    // Update preferences mutation
+    updatePreferences: async (_, { id, input }, { req, user }) => {
+      // Check if the user is logged in and reject if not
+      await protect(req);
+
+      // Check if the user is the owner of the preferences and reject if not
+      if (user.id !== input.user) {
+        throw new Error("You are not authorized to update these preferences");
+      }
+
+      try {
+        // Save the updated preferences to the database
+        const preferences = await Preferences.findByIdAndUpdate(id, input, {
+          new: true,
+        });
+        await preferences.populate({ path: "order", model: "Order" });
+
+        return preferences;
+      } catch (error) {
+        throw new Error(`Preferences update failed: ${error.message}`);
+      }
+    },
+
+    // Delete preferences mutation
+    deletePreferences: async (_, { deletePreferencesId }, { req, user }) => {
+      // Check if there is a logged in user and reject if not
+      await protect(req);
+
+      // Check if the user is the owner of the preferences and reject if not
+      if (user.id !== deletePreferencesId) {
+        throw new Error("You are not authorized to delete these preferences");
+      }
+
+      try {
+        const preferencesToDelete = await Preferences.findByIdAndDelete(
+          deletePreferencesId
+        );
+        if (!preferencesToDelete) {
+          throw new Error("Preferences not found");
+        }
+        return { message: "Preferences deleted successfully" };
+      } catch (error) {
+        throw new Error(`Delete preferences failed: ${error.message}`);
       }
     },
   },

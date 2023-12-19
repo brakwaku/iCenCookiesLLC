@@ -28,6 +28,10 @@ const ReviewSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    isSanctioned: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -36,23 +40,6 @@ const ReviewSchema = new mongoose.Schema(
 
 // Prevent user from submitting more than one review per product
 ReviewSchema.index({ user: 1, product: 1 }, { unique: true }); // this is a compound index
-
-// Static method to remove review's id from product's reviews array and reduce the numReviews count
-ReviewSchema.post("remove", async function (next) {
-  try {
-    const productId = this.product;
-    await Product.updateOne(
-      { _id: productId },
-      {
-        $pull: { reviews: this._id },
-        $inc: { numReviews: -1 }
-      }
-    );
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Static method to get avg rating and save
 ReviewSchema.statics.getAverageRating = async function (productId) {
@@ -83,14 +70,14 @@ ReviewSchema.post("save", async function () {
 });
 
 // Call getAverageRating before remove
-ReviewSchema.post(
-  "deleteOne",
-  { document: true, query: false },
-  async function () {
-    console.log(`AverageRating being calculated for product ${this._id}`);
-    await this.constructor.getAverageRating(this.product);
-  }
-);
+// ReviewSchema.post(
+//   "deleteOne",
+//   { document: true, query: false },
+//   async function () {
+//     console.log(`AverageRating being calculated for product ${this._id}`);
+//     await this.constructor.getAverageRating(this.product);
+//   }
+// );
 
 const Review = mongoose.model("Review", ReviewSchema);
 

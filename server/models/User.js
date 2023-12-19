@@ -30,15 +30,15 @@ const UserSchema = new mongoose.Schema(
       postalCode: String,
       country: String,
     },
-    orders: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Order",
-      },
-    ],
+    // orders: [
+    //   {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "Order",
+    //   },
+    // ],
     preferences: {
-      monthlyDelivery: Boolean,
-      doNotAdd: [String],
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Preferences",
     },
     password: {
       type: String,

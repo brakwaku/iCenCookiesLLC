@@ -11,7 +11,7 @@ type User {
 }
 
 type Address {
-  street: String!
+  address: String!
   city: String!
   postalCode: String!
   country: String!
@@ -19,8 +19,10 @@ type Address {
 
 type Preferences {
   _id: ID!
+  user: ID!
   monthlyDelivery: Boolean
   doNotAdd: [String]
+  order: Order
 }
 
 type Product {
@@ -48,6 +50,7 @@ type Review {
   rating: Float!
   user: User!
   product: ID!
+  isSanctioned: Boolean!
   createdAt: String!
   updatedAt: String!
 }
@@ -112,8 +115,8 @@ type Mutation {
 
   # Order mutations
   createOrder(input: OrderInput!): Order
-  updateOrder(id: ID!, input: OrderInput!): Order
-  deleteOrder(id: ID!): MessageResponse
+  updateOrder(id: ID!, input: UpdateOrderInput!): Order
+  deleteOrder(deleteOrderId: ID!): MessageResponse
 
   # User mutations
   registerUser(userInput: UserInput!): AuthUserResponse!
@@ -129,6 +132,11 @@ type Mutation {
   createReview(input: ReviewInput!): Review
   updateReview(id: ID!, input: UpdateReviewInput!): Review
   deleteReview(deleteReviewId: ID!): MessageResponse
+
+  # Preferences mutations
+  createPreferences(input: PreferencesInput!): Preferences
+  updatePreferences(id: ID!, input: PreferencesInput!): Preferences
+  deletePreferences(deletePreferencesId: ID!): MessageResponse
 }
 
 type AuthUserResponse {
@@ -147,7 +155,7 @@ type MessageResponse {
 }
 
 input AddressInput {
-  street: String!
+  address: String!
   city: String!
   postalCode: String
   country: String
@@ -186,6 +194,24 @@ input OrderInput {
   taxPrice: Float!
   shippingPrice: Float!
   totalPrice: Float!
+  isPaid: Boolean!
+  paidAt: String
+  isDelivered: Boolean!
+  deliveredAt: String
+}
+
+input UpdateOrderInput {
+  type: String
+  orderItems: [OrderItemInput]
+  shippingAddress: AddressInput
+  paymentMethod: String
+  taxPrice: Float
+  shippingPrice: Float
+  totalPrice: Float
+  isPaid: Boolean
+  paidAt: String
+  isDelivered: Boolean
+  deliveredAt: String
 }
 
 input OrderItemInput {
@@ -219,9 +245,18 @@ input UpdatedUserInput {
 }
 
 input PreferencesInput {
+  user: ID!
   monthlyDelivery: Boolean
   doNotAdd: [String]
+  order: ID
 }
+
+
+# input UpdatePreferencesInput {
+#   monthlyDelivery: Boolean
+#   doNotAdd: [String]
+#   order: ID
+# }
 
 input ReviewInput {
   title: String!

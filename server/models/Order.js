@@ -1,5 +1,4 @@
-import mongoose from 'mongoose'
-import { type } from 'os'
+import mongoose from 'mongoose';
 
 const orderSchema = mongoose.Schema({
     user: {
@@ -20,6 +19,12 @@ const orderSchema = mongoose.Schema({
             }
         }
     ],
+    type: {
+        type: String,
+        enum: ['shipping', 'pickup'],
+        required: true,
+        default: 'pickup'
+    },
     shippingAddress: {
         address: { type: String, required: true },
         city: { type: String, required: true },
@@ -74,4 +79,4 @@ const orderSchema = mongoose.Schema({
 
 const Order = mongoose.model('Order', orderSchema)
 
-export default Order
+export default Order;

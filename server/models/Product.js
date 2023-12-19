@@ -17,7 +17,8 @@ const productSchema = mongoose.Schema(
     },
     cloudinaryId: {
       type: String,
-      // required: true
+      default: "cloudinaryId",
+      required: true
     },
     type: {
       type: String,
