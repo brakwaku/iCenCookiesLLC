@@ -1,6 +1,6 @@
 import mongoose from'mongoose';
 
-const preferencesSchema = new mongoose.Schema({
+const PreferencesSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
@@ -23,6 +23,9 @@ const preferencesSchema = new mongoose.Schema({
     timestamps: true
 });
 
-const Preferences = mongoose.model('Preferences', preferencesSchema);
+// Prevent user from submitting more than one preference
+PreferencesSchema.index({ user: 1 }, { unique: true });
+
+const Preferences = mongoose.model('Preferences', PreferencesSchema);
 
 export default Preferences;

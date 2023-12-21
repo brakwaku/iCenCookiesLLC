@@ -7,13 +7,14 @@ import Preferences from "../models/Preferences.js";
 import sendEmail from "../utils/sendEmail.js";
 import { sendTokenResponse } from "../utils/auth.js";
 import { protect, authorize } from "../middleware/auth.js";
+import mongoose from "mongoose";
+import { createCustomer, createPaymentIntent } from "../utils/stripeCheckout.js";
 
 function rejectIf(condition, message) {
   if (condition) {
     throw new Error(message);
   }
 }
-
 const resolvers = {
   Query: {
     getAllUsers: async (_, __, { req, user }) => {
@@ -90,16 +91,29 @@ const resolvers = {
       return review;
     },
 
-    getAllUserOrders: async () => {
-      // Fetch orders from MongoDB
-      const orders = await Order.find();
-      return orders;
+    getAllUserOrders: async (_, __, { req, user }) => {
+      await protect(req);
+      await authorize("admin", user);
+      try {
+        const orders = await Order.find();
+        return orders;
+      } catch (error) {
+        throw new Error(`Get all user orders failed: ${error.message}`);
+      }
     },
 
-    getOrderById: async (_, { id }) => {
-      // Fetch a single order by ID
-      const order = await Order.findById(id);
-      return order;
+    getOrderById: async (_, { id }, { req, user }) => {
+      await protect(req);
+      // await authorize("admin", user);
+      try {
+        const order = await Order.findById(id);
+        rejectIf(!order, `Order not found with id of ${id}`);
+        rejectIf((user.id !== order.user.toString() || user.role !== "admin"), "You are not authorized to view this order");
+
+        return order;
+      } catch (error) {
+        throw new Error(`Get order by id failed: ${error.message}`);
+      }
     },
   },
 
@@ -110,9 +124,7 @@ const resolvers = {
         const { email } = userInput;
         // Check if the user already exists
         const existingUser = await User.findOne({ email });
-        if (existingUser) {
-          throw new Error("User already exists");
-        }
+        rejectIf(existingUser, "User already exists");
         // Create the user
         const user = new User(userInput);
         await user.save();
@@ -130,14 +142,10 @@ const resolvers = {
       try {
         // Check if the user exists
         const user = await User.findOne({ email }).select("+password");
-        if (!user) {
-          throw new Error("Invalid credentials");
-        }
+        rejectIf(!user, "Invalid credentials");
         // Check if the entered password matches the stored hashed password
         const isMatch = await user.matchPassword(password);
-        if (!isMatch) {
-          throw new Error("Invalid credentials");
-        }
+        rejectIf(!isMatch, "Invalid credentials");
         // Generate and send the token response
         sendTokenResponse(user, res);
 
@@ -162,7 +170,6 @@ const resolvers = {
         return {
           success: true,
           message: "Logout successful",
-          data: {},
         };
       } catch (error) {
         console.error(error);
@@ -226,14 +233,10 @@ const resolvers = {
           resetPasswordExpire: { $gt: Date.now() },
         }); // check if the token is valid and not expired
 
-        if (!user) {
-          throw new Error("Invalid reset token");
-        }
+        rejectIf(!user, "Invalid reset token");
 
         // Check if the reset token has expired
-        if (user.resetPasswordExpire < Date.now()) {
-          throw new Error("Reset token has expired");
-        }
+        rejectIf(user.resetPasswordExpire < Date.now(), "Reset token has expired");
 
         // Set new password
         user.password = newPassword; // set the new password
@@ -260,9 +263,7 @@ const resolvers = {
         const user = await User.findById(id).select("+password");
 
         // Check current password
-        if (!(await user.matchPassword(currentPassword))) {
-          throw new Error("Password is incorrect");
-        }
+        rejectIf(!(await user.matchPassword(currentPassword)), "Password is incorrect");
 
         user.password = newPassword; // set the new password
         await user.save(); // save the user
@@ -282,9 +283,7 @@ const resolvers = {
         // findByIdAndUpdate() bypasses the mongoose middleware, so I use findById() and then save()
         let user = await User.findById(userId);
         // if no user is found
-        if (!user) {
-          throw new Error(`User not found with id of ${userId}`);
-        }
+        rejectIf(!user, `User not found with id of ${userId}`);
         // update the user
         user = await User.findByIdAndUpdate(userId, updatedUser, {
           new: true,
@@ -300,14 +299,12 @@ const resolvers = {
     // Delete user mutation
     deleteUser: async (_, { deleteUserId }, { req, user }) => {
       // Check if there is a logged in user and reject if not
-      rejectIf(user === undefined || null, "Please login to continue");
       await protect(req);
       await authorize("admin", user);
       try {
         const userToDelete = await User.findByIdAndDelete(deleteUserId);
-        if (!userToDelete) {
-          throw new Error("User not found");
-        }
+        rejectIf(!userToDelete, "User not found");
+
         return { message: "User deleted successfully" };
       } catch (error) {
         throw new Error(`Delete user failed: ${error.message}`);
@@ -353,16 +350,14 @@ const resolvers = {
     // Delete product mutation
     deleteProduct: async (_, { deleteProductId }, { req, user }) => {
       // Check if there is a logged in user and reject if not
-      rejectIf(user === undefined || null, "Please login to continue");
       await protect(req);
       await authorize("admin", user);
       try {
         const productToDelete = await Product.findByIdAndDelete(
           deleteProductId
         );
-        if (!productToDelete) {
-          throw new Error("Product not found");
-        }
+        rejectIf(!productToDelete, "Product not found");
+
         return { message: "Product deleted successfully" };
       } catch (error) {
         throw new Error(`Delete product failed: ${error.message}`);
@@ -389,11 +384,8 @@ const resolvers = {
       } catch (error) {
         if (error.code === 11000) {
           // Handle the duplicate key error
-          console.error(
-            "A user cannot review the same product more than once."
-          );
           throw new Error(
-            `A user cannot review the same product more than once.`
+            "A user cannot review the same product more than once."
           );
         } else {
           throw new Error(`Review creation failed: ${error.message}`);
@@ -407,9 +399,7 @@ const resolvers = {
       await protect(req);
 
       // Check if the user is the owner of the review and reject if not
-      if (user.id !== input.user) {
-        throw new Error("You are not authorized to update this review");
-      }
+      rejectIf(user.id !== input.user, "You are not authorized to update this review");
 
       try {
         // Save the updated review to the database
@@ -440,11 +430,9 @@ const resolvers = {
           $inc: { numReviews: -1 },
         }
       );
-
+      
       // // Check if the user is the owner of the review and reject if not
-      // if (user.id !== review.user.toString()) {
-      //   throw new Error("You are not authorized to delete this review");
-      // }
+      // rejectIf(user.id !== review.user.toString(), "You are not authorized to delete this review");
 
       try {
         await review.deleteOne();
@@ -459,8 +447,18 @@ const resolvers = {
       // Check if the user is logged in and reject if not
       await protect(req);
       const userId = user?.id;
+      // Check if the user is the owner of the review and reject if not
+      rejectIf(userId !== input.user, "You are not authorized to update this review");
 
       const orderInput = { ...input, user: userId };
+      const orderTotal = orderInput.orderItems.reduce((total, orderItem) => {
+        // Calculate the subtotal for each order item
+        const subtotal = orderItem.price * orderItem.qty;
+        // Add the subtotal to the total
+        return total + subtotal;
+      }, 0); // Start with an initial total of 0
+
+      orderInput.totalPrice = orderTotal;
       try {
         // Save the new order to the database
         const order = await Order.create(orderInput);
@@ -478,9 +476,7 @@ const resolvers = {
       const oldOrder = await Order.findById(id);
 
       // Check if the user is the owner of the order or an admin and reject if not
-      if (user.id !== oldOrder.user.toString() || user.role !== "admin") {
-        throw new Error("You are not authorized to update this order");
-      }
+      rejectIf(user.id !== oldOrder.user.toString() || user.role !== "admin", "You are not authorized to update this order");
       try {
         // Save the updated order to the database
         const order = await Order.findByIdAndUpdate(id, input, {
@@ -500,9 +496,7 @@ const resolvers = {
       const oldOrder = await Order.findById(deleteOrderId);
 
       // Check if the user is the owner of the order or an admin and reject if not
-      if (user.id !== oldOrder.user.toString() || user.role !== "admin") {
-        throw new Error("You are not authorized to delete this order");
-      }
+      rejectIf(user.id !== oldOrder.user.toString() || user.role !== "admin", "You are not authorized to delete this order");
       try {
         const orderToDelete = await Order.findByIdAndDelete(deleteOrderId);
         if (!orderToDelete) {
@@ -519,12 +513,14 @@ const resolvers = {
       // Check if the user is logged in and reject if not
       await protect(req);
       const userId = user?.id;
+      const prefUser = await User.findById(userId);
 
-      const preferencesInput = { ...input, user: userId };
       try {
         // Save the new preferences to the database
-        const preferences = await Preferences.create(preferencesInput);
+        const preferences = await Preferences.create(input);
         await preferences.populate({ path: "order", model: "Order" });
+        prefUser.preferences = preferences._id.toString();
+        await prefUser.save();
 
         return preferences;
       } catch (error) {
@@ -559,22 +555,42 @@ const resolvers = {
     deletePreferences: async (_, { deletePreferencesId }, { req, user }) => {
       // Check if there is a logged in user and reject if not
       await protect(req);
+      const pref = await Preferences.findById(deletePreferencesId);
+      const prefUser = await User.findById(pref.user.toString());
 
       // Check if the user is the owner of the preferences and reject if not
-      if (user.id !== deletePreferencesId) {
-        throw new Error("You are not authorized to delete these preferences");
-      }
+      rejectIf(user.id !== prefUser._id.toString(), "You are not authorized to delete these preferences");
 
       try {
         const preferencesToDelete = await Preferences.findByIdAndDelete(
           deletePreferencesId
         );
-        if (!preferencesToDelete) {
-          throw new Error("Preferences not found");
-        }
+        rejectIf(!preferencesToDelete, "Preferences not found");
+        prefUser.preferences = new mongoose.Types.ObjectId();
+        await prefUser.save();
+
         return { message: "Preferences deleted successfully" };
       } catch (error) {
         throw new Error(`Delete preferences failed: ${error.message}`);
+      }
+    },
+
+    // Create PaymentIntent mutation
+    createPaymentIntent: async (_, { input }, { req, user }) => {
+      // Check if the user is logged in and reject if not
+      await protect(req);
+      
+      try {
+        const { id } = await createCustomer(input.email, user.name);
+        const { client_secret } = await createPaymentIntent(input.amount, input.currency, id, input.orderId, true, input.email);
+
+        return {
+          success: true,
+          message: "Payment intent created successfully",
+          clientSecret: client_secret,
+        }
+      } catch (error) {
+        throw new Error(`Checkout failed: ${error.message}`);
       }
     },
   },

@@ -33,6 +33,7 @@
     "morgan": "^1.10.0",
     "nanoid": "^5.0.4",
     "nodemailer": "^6.9.7",
+    "stripe": "^14.9.0",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {

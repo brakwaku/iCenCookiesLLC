@@ -88,6 +88,12 @@ type PaymentResult {
   phone_number: String!
 }
 
+type PaymentIntent {
+  success: Boolean
+  message: String
+  clientSecret: String
+}
+
 type Query {
   # User queries
   getAllUsers: [User]
@@ -137,6 +143,9 @@ type Mutation {
   createPreferences(input: PreferencesInput!): Preferences
   updatePreferences(id: ID!, input: PreferencesInput!): Preferences
   deletePreferences(deletePreferencesId: ID!): MessageResponse
+
+  # Checkout mutations
+  createPaymentIntent(input: PaymentIntentInput!): PaymentIntent
 }
 
 type AuthUserResponse {
@@ -152,6 +161,12 @@ type LogoutUserResponse {
 
 type MessageResponse {
   message: String!
+}
+
+type CheckoutResult {
+  success: Boolean
+  message: String
+  paymentIntentId: String
 }
 
 input AddressInput {
@@ -229,7 +244,7 @@ input UserInput {
   password: String!
   address: AddressInput
   orders: [ID]
-  preferences: PreferencesInput
+  preferences: ID
   createdAt: String
 }
 
@@ -240,7 +255,7 @@ input UpdatedUserInput {
   password: String
   address: AddressInput
   orders: [ID]
-  preferences: PreferencesInput
+  preferences: ID
   createdAt: String
 }
 
@@ -271,4 +286,16 @@ input UpdateReviewInput {
   rating: Float
   user: ID
 }
+
+input PaymentIntentInput {
+  amount: Int!
+  currency: String!
+  orderId: ID!
+  email: String!
+}
+
+# input CheckoutInput {
+#   amount: Int!
+#   currency: String!
+# }
 
